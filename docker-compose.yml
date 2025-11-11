@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  obscuragate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: obscuragate-pow-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      POW_DIFFICULTY: 4
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - ./backend/logs:/app/logs
+    networks:
+      - obscuragate-network
+
+networks:
+  obscuragate-network:
+    driver: bridge

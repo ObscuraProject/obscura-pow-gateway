@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ObscuraGate PoW Gateway</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #00ff00;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #00ff00;
+            border-radius: 8px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #00ff00;
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            text-shadow: 0 0 10px #00ff00;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #00cc00;
+            font-size: 12px;
+            letter-spacing: 2px;
+        }
+
+        .content {
+            margin-bottom: 30px;
+        }
+
+        .field {
+            margin-bottom: 20px;
+        }
+
+        .label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: #00ff00;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .value {
+            background: rgba(0, 50, 0, 0.5);
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            padding: 12px;
+            word-break: break-all;
+            font-size: 12px;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            color: #00ff00;
+        }
+
+        .info-box {
+            background: rgba(0, 50, 0, 0.3);
+            border-left: 3px solid #00ff00;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .status {
+            background: rgba(0, 30, 0, 0.8);
+            border: 1px solid #00cc00;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+            min-height: 30px;
+            display: flex;
+            align-items: center;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .status.success {
+            color: #00ff00;
+            border-color: #00ff00;
+            animation: none;
+        }
+
+        .status.error {
+            color: #ff0000;
+            border-color: #ff0000;
+            animation: none;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button {
+            background: rgba(0, 255, 0, 0.1);
+            color: #00ff00;
+            border: 2px solid #00ff00;
+            padding: 12px 30px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+
+        button:hover:not(:disabled) {
+            background: rgba(0, 255, 0, 0.2);
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+            font-size: 11px;
+        }
+
+        .stat-item {
+            background: rgba(0, 50, 0, 0.3);
+            border: 1px solid #00ff00;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .stat-label {
+            color: #00cc00;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            font-size: 10px;
+        }
+
+        .stat-value {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .disclaimer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #00ff00;
+            font-size: 11px;
+            color: #00cc00;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ ObscuraGate PoW Gateway ⚡</h1>
+            <p>Proof of Work Authentication System</p>
+        </div>
+
+        <div class="content">
+            <div class="info-box">
+                <strong>How it works:</strong> Click "Get Challenge" to receive a Proof of Work puzzle. The WASM module will calculate the correct nonce, then submit it for verification and redirect you to one of our mirror links.
+            </div>
+
+            <div class="status" id="status">
+                Initializing gateway...
+            </div>
+
+            <div class="field">
+                <label class="label">Challenge ID</label>
+                <div class="value" id="challenge">Waiting for challenge...</div>
+            </div>
+
+            <div class="field">
+                <label class="label">Difficulty (leading zeros required)</label>
+                <div class="value" id="difficulty">-</div>
+            </div>
+
+            <div class="field">
+                <label class="label">Calculated Nonce</label>
+                <div class="value" id="nonce">Pending...</div>
+            </div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-label">Computation Time</div>
+                    <div class="stat-value" id="elapsed">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Status</div>
+                    <div class="stat-value" id="stat-status">Ready</div>
+                </div>
+            </div>
+
+            <div class="buttons" style="margin-top: 30px;">
+                <button id="getChallenge" onclick="getChallenge()" disabled>Get Challenge</button>
+                <button id="submitBtn" onclick="submitPoW()" disabled>Submit PoW</button>
+            </div>
+
+            <div class="disclaimer">
+                <strong>Note:</strong> This gateway uses minimal JavaScript to load a WebAssembly module that performs the Proof of Work calculation. The computation may take several seconds depending on your system's performance. Your browser will calculate the nonce locally without sending it to our servers until verified.
+            </div>
+        </div>
+    </div>
+
+    <script src="/pow-solver.js"></script>
+</body>
+</html>
