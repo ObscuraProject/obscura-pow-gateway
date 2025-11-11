@@ -13,6 +13,7 @@
 //  Unauthorized modification of the user interface or
 //  branding is strictly prohibited.
 // ============================================================
+
 const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
@@ -29,15 +30,15 @@ const mirrors = [
 ];
 
 // Rate limiting and DDoS protection
-const requestCounts = new Map(); // Track requests per IP
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const MAX_CHALLENGES_PER_MINUTE = 10; // Max challenges per IP per minute
-const BAN_THRESHOLD = 100; // Ban after 100 failed attempts per hour
-const BAN_DURATION = 60 * 60 * 1000; // 1 hour ban
+const requestCounts = new Map();
+const RATE_LIMIT_WINDOW = 60 * 1000;
+const MAX_CHALLENGES_PER_MINUTE = 10;
+const BAN_THRESHOLD = 100;
+const BAN_DURATION = 60 * 60 * 1000;
 
-const bannedIPs = new Map(); // Track banned IPs
+const bannedIPs = new Map();
 
-// Serve static files from 'public' folder with WASM MIME type support
+// Serve static files from 'public' folder
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.wasm')) {
@@ -48,6 +49,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // In-memory store for issued challenges
 const challenges = new Map();
@@ -55,34 +57,31 @@ const CHALLENGE_EXPIRY = 5 * 60 * 1000; // 5 minutes
 
 // Track failed attempts per IP
 const failedAttempts = new Map();
-const FAILED_ATTEMPT_WINDOW = 60 * 60 * 1000; // 1 hour
+const FAILED_ATTEMPT_WINDOW = 60 * 60 * 1000;
 
-// Cleanup expired challenges periodically
+// Cleanup expired data periodically
 setInterval(() => {
   const now = Date.now();
   
-  // Clean expired challenges
   for (const [key, value] of challenges.entries()) {
     if (now - value.timestamp > CHALLENGE_EXPIRY) {
       challenges.delete(key);
     }
   }
   
-  // Clean expired failed attempts
   for (const [ip, data] of failedAttempts.entries()) {
     if (now - data.firstAttempt > FAILED_ATTEMPT_WINDOW) {
       failedAttempts.delete(ip);
     }
   }
   
-  // Clean expired bans
   for (const [ip, banTime] of bannedIPs.entries()) {
     if (now - banTime > BAN_DURATION) {
       bannedIPs.delete(ip);
       console.log('[SECURITY] Ban expired for IP:', ip);
     }
   }
-}, 30 * 1000); // Check every 30 seconds
+}, 30 * 1000);
 
 // Helper to get client IP
 function getClientIP(req) {
@@ -93,7 +92,6 @@ function getClientIP(req) {
 function checkRateLimit(ip) {
   const now = Date.now();
   
-  // Check if banned
   if (bannedIPs.has(ip)) {
     return { allowed: false, reason: 'IP is temporarily banned due to suspicious activity' };
   }
@@ -106,7 +104,6 @@ function checkRateLimit(ip) {
   const data = requestCounts.get(ip);
   
   if (now > data.resetTime) {
-    // Reset the counter
     data.count = 1;
     data.resetTime = now + RATE_LIMIT_WINDOW;
     return { allowed: true };
@@ -161,11 +158,10 @@ function solvePoW(challenge, difficulty) {
   }
 }
 
-// API to get a new PoW challenge
+// API to get a new PoW challenge (JSON response)
 app.get('/api/challenge', (req, res) => {
   const ip = getClientIP(req);
   
-  // Check rate limit
   const rateLimitCheck = checkRateLimit(ip);
   if (!rateLimitCheck.allowed) {
     console.log('[SECURITY] Rate limit exceeded for IP:', ip);
@@ -179,18 +175,14 @@ app.get('/api/challenge', (req, res) => {
   const difficulty = 4;
 
   console.log('[API] Challenge request from', ip);
-  console.log('[API] Generating challenge:', challenge);
 
-  // Pre-solve the challenge
-  console.log('[API] Pre-solving challenge...');
   const nonce = solvePoW(challenge, difficulty);
 
-  // Store challenge with solution for verification
   challenges.set(challenge, {
     difficulty,
     nonce,
     timestamp: Date.now(),
-    ip // Track which IP this challenge was issued to
+    ip
   });
 
   console.log('[API] Challenge solved. Nonce:', nonce);
@@ -201,6 +193,99 @@ app.get('/api/challenge', (req, res) => {
     nonce,
     message: 'Server-computed Proof of Work challenge'
   });
+});
+
+// Form-based challenge request (for JavaScript-disabled users)
+app.post('/challenge', (req, res) => {
+  const ip = getClientIP(req);
+  
+  const rateLimitCheck = checkRateLimit(ip);
+  if (!rateLimitCheck.allowed) {
+    console.log('[SECURITY] Rate limit exceeded for form request from IP:', ip);
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Error</title></head>
+      <body style="font-family: monospace; color: #00ff00; background: #000; padding: 20px;">
+        <h1>Error</h1>
+        <p>${rateLimitCheck.reason}</p>
+        <p><a href="/">Back to gateway</a></p>
+      </body>
+      </html>
+    `);
+  }
+
+  const challenge = generateChallenge();
+  const difficulty = 4;
+
+  console.log('[FORM] Challenge request from', ip);
+
+  const nonce = solvePoW(challenge, difficulty);
+
+  challenges.set(challenge, {
+    difficulty,
+    nonce,
+    timestamp: Date.now(),
+    ip
+  });
+
+  console.log('[FORM] Challenge solved. Nonce:', nonce);
+
+  // Return HTML with form pre-filled
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>ObscuraGate PoW Gateway</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Courier New', monospace; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: #00ff00; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .container { background: rgba(0, 0, 0, 0.85); border: 2px solid #00ff00; border-radius: 8px; padding: 40px; max-width: 600px; width: 100%; box-shadow: 0 0 20px rgba(0, 255, 0, 0.3); }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #00ff00; padding-bottom: 20px; }
+        .header h1 { font-size: 28px; text-shadow: 0 0 10px #00ff00; margin-bottom: 5px; }
+        .header p { color: #00cc00; font-size: 12px; letter-spacing: 2px; }
+        .field { margin-bottom: 20px; }
+        .label { display: block; margin-bottom: 8px; font-size: 12px; color: #00ff00; text-transform: uppercase; letter-spacing: 1px; }
+        input { background: rgba(0, 50, 0, 0.5); border: 1px solid #00ff00; border-radius: 4px; padding: 12px; font-size: 12px; color: #00ff00; font-family: 'Courier New', monospace; width: 100%; }
+        .buttons { display: flex; gap: 10px; margin-bottom: 20px; margin-top: 20px; }
+        button { flex: 1; padding: 12px 20px; background: rgba(0, 255, 0, 0.1); border: 1px solid #00ff00; color: #00ff00; cursor: pointer; font-family: 'Courier New', monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; border-radius: 4px; }
+        button:hover { background: rgba(0, 255, 0, 0.2); box-shadow: 0 0 10px rgba(0, 255, 0, 0.5); }
+        .status { background: rgba(0, 100, 0, 0.3); border: 1px solid #00ff00; border-radius: 4px; padding: 15px; text-align: center; font-size: 12px; color: #00ff00; margin-top: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>⚡ ObscuraGate PoW Gateway ⚡</h1>
+          <p>Proof of Work Authentication System</p>
+        </div>
+        <form method="POST" action="/api/submit">
+          <div class="field">
+            <span class="label">Challenge ID</span>
+            <input type="text" name="challenge" value="${challenge}" readonly>
+          </div>
+          <div class="field">
+            <span class="label">Difficulty</span>
+            <input type="text" value="${difficulty}" readonly>
+          </div>
+          <div class="field">
+            <span class="label">Calculated Nonce</span>
+            <input type="text" name="nonce" value="${nonce}" readonly>
+          </div>
+          <div class="status">
+            > Challenge received! Ready to submit.
+          </div>
+          <div class="buttons">
+            <button type="button" onclick="location.href='/';">Back</button>
+            <button type="submit">Submit</button>
+          </div>
+        </form>
+      </div>
+    </body>
+    </html>
+  `);
 });
 
 // API to submit PoW solution
@@ -223,10 +308,8 @@ app.post('/api/submit', (req, res) => {
     return res.status(400).json({ error: 'Unknown or expired challenge' });
   }
 
-  // Verify the challenge came from this IP (prevents reuse from other IPs)
   if (challengeData.ip !== ip) {
     console.log('[SECURITY] Challenge reuse attempt from different IP');
-    console.log('[SECURITY] Challenge IP:', challengeData.ip, 'Submission IP:', ip);
     trackFailedAttempt(ip);
     return res.status(403).json({ error: 'Challenge validation failed' });
   }
@@ -234,8 +317,6 @@ app.post('/api/submit', (req, res) => {
   const { difficulty } = challengeData;
   const nonceString = nonce.toString();
   const hashInput = challenge + nonceString;
-
-  console.log('[SUBMIT] Validating: Hash input:', hashInput);
 
   const hash = crypto.createHash('sha256').update(hashInput).digest('hex');
   const target = '0'.repeat(difficulty);
@@ -246,12 +327,30 @@ app.post('/api/submit', (req, res) => {
   if (hash.startsWith(target)) {
     console.log('[SUBMIT] ✓ SUCCESS - PoW valid from', ip);
     challenges.delete(challenge);
-    
-    // Clear failed attempts on successful submission
     failedAttempts.delete(ip);
 
     const redirectUrl = mirrors[Math.floor(Math.random() * mirrors.length)];
 
+    // Check if this is a form submission (no Accept: application/json header)
+    if (!req.headers.accept || !req.headers.accept.includes('application/json')) {
+      // HTML redirect
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Redirecting...</title>
+          <meta http-equiv="refresh" content="2; url=${redirectUrl}">
+        </head>
+        <body style="font-family: monospace; color: #00ff00; background: #000; padding: 20px;">
+          <h1>✓ PoW Verified!</h1>
+          <p>Redirecting to: ${redirectUrl}</p>
+          <p>If not redirected, <a href="${redirectUrl}" style="color: #00ff00;">click here</a></p>
+        </body>
+        </html>
+      `);
+    }
+
+    // JSON response for AJAX
     return res.json({
       success: true,
       redirect: redirectUrl,
@@ -279,7 +378,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Stats endpoint (for monitoring)
+// Stats endpoint
 app.get('/api/stats', (req, res) => {
   res.json({
     activeChallenges: challenges.size,
@@ -298,5 +397,6 @@ app.listen(port, () => {
   console.log(`║  Mode: Server-side PoW with DDoS      ║`);
   console.log(`║  Rate limit: ${MAX_CHALLENGES_PER_MINUTE} challenges/min per IP ║`);
   console.log(`║  Ban threshold: ${BAN_THRESHOLD} failed attempts/hour   ║`);
+  console.log(`║  Works with/without JavaScript        ║`);
   console.log(`╚════════════════════════════════════════╝\n`);
 });
