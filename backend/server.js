@@ -33,9 +33,8 @@ const mirrors = [
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.wasm')) {
-      // Ensure correct MIME type for WASM files
       res.setHeader('Content-Type', 'application/wasm');
-      res.setHeader('Content-Disposition', 'attachment; filename="' + path.basename(filePath) + '"');
+      res.setHeader('Content-Disposition', 'inline');
     }
   },
 }));
