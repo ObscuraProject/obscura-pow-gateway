@@ -1,18 +1,18 @@
-// ============================================================
-//  ObscuraGate PoW Gateway
-//  Copyright (c) 2025-2026 The Obscura Project LhCorp.
-//  Licensed by Toric Security Services,
-//  The Privacy-Based Corporation License Issuing Authority
-//  (LhCorp - Licensed Hidden Corporation)
-//
-//  Usage of this software is permitted under the conditions:
-//  - The application UI may NOT be modified in any form.
-//  - Backend contributions are allowed via official GitHub channels.
-//  - Redistribution must include this copyright header.
-//
-//  Unauthorized modification of the user interface or
-//  branding is strictly prohibited.
-// ============================================================
+## ============================================================
+##  ObscuraGate PoW Gateway
+##  Copyright (c) 2025-2026 The Obscura Project LhCorp.
+##  Licensed by Toric Security Services,
+##  The Privacy-Based Corporation License Issuing Authority
+##  (LhCorp - Licensed Hidden Corporation)
+##
+##  Usage of this software is permitted under the conditions:
+##  - The application UI may NOT be modified in any form.
+##  - Backend contributions are allowed via official GitHub channels.
+##  - Redistribution must include this copyright header.
+##
+##  Unauthorized modification of the user interface or
+##  branding is strictly prohibited.
+## ============================================================
 
 FROM node:18-alpine
 
