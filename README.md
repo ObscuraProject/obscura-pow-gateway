@@ -42,6 +42,7 @@ cd ../backend
 
 # 4. Install dependencies
 npm install
+npm install express
 
 # 5. Start server
 npm start
