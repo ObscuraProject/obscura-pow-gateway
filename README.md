@@ -37,6 +37,8 @@ cd obscura-pow-gateway
 # 3. Build WASM
 cd rust-pow
 wasm-pack build --target web --release
+cd ../
+mkdir backend/public/wasm
 cp pkg/obscuragate_pow_bg.wasm ../backend/public/wasm/
 cd ../backend
 
