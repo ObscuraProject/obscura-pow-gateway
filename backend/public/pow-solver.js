@@ -14,80 +14,111 @@
 //  branding is strictly prohibited.
 // ============================================================
 
-
 let wasmModule = null;
 
-// Load WebAssembly module
+// SHA-256 implementation using Web Crypto API
+async function sha256(input) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(input);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// JavaScript-based PoW solver - finds nonce where SHA256(challenge + nonce) starts with required zeros
+async function solvePowJavaScript(challenge, difficulty) {
+  console.log('[SOLVER-JS] Starting JavaScript PoW solver');
+  console.log('[SOLVER-JS] Challenge:', challenge);
+  console.log('[SOLVER-JS] Difficulty:', difficulty, '(need', difficulty, 'leading zeros)');
+  
+  const target = '0'.repeat(difficulty);
+  let nonce = 0;
+  let attempts = 0;
+  const startTime = Date.now();
+  
+  // Update UI every 100ms to show progress
+  const updateInterval = setInterval(() => {
+    const elapsed = (Date.now() - startTime) / 1000;
+    document.getElementById('status').textContent = `Solving PoW... (${attempts.toLocaleString()} attempts in ${elapsed.toFixed(1)}s)`;
+  }, 100);
+  
+  while (true) {
+    attempts++;
+    
+    // Allow UI to update every 1000 attempts
+    if (attempts % 1000 === 0) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    
+    const hashInput = challenge + nonce;
+    const hash = await sha256(hashInput);
+    
+    if (hash.startsWith(target)) {
+      clearInterval(updateInterval);
+      const elapsed = Date.now() - startTime;
+      console.log('[SOLVER-JS] ✓ Found valid nonce!');
+      console.log('[SOLVER-JS] Nonce:', nonce);
+      console.log('[SOLVER-JS] Hash:', hash);
+      console.log('[SOLVER-JS] Attempts:', attempts.toLocaleString());
+      console.log('[SOLVER-JS] Time:', (elapsed / 1000).toFixed(2) + 's');
+      
+      return { nonce, hash, attempts, elapsed };
+    }
+    
+    nonce++;
+  }
+}
+
+// Try to load WASM module
 async function initWasm() {
   try {
-    console.log('[WASM] Starting module load...');
+    console.log('[WASM] Attempting to load WASM module...');
     
     const response = await fetch('/wasm/obscuragate_pow_bg.wasm');
-    console.log('[WASM] Fetch response status:', response.status);
-    
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: Failed to fetch WASM file`);
+      console.warn('[WASM] HTTP error, falling back to JavaScript');
+      return null;
     }
     
     const buffer = await response.arrayBuffer();
-    console.log('[WASM] Buffer size:', buffer.byteLength, 'bytes');
+    console.log('[WASM] Buffer loaded, size:', buffer.byteLength);
     
-    // Create memory
     const memory = new WebAssembly.Memory({ initial: 256, maximum: 512 });
-    
-    // Create table for function references
     const table = new WebAssembly.Table({ initial: 0, element: 'anyfunc' });
     
-    // Create all required wbindgen imports
     const wasmImports = {
       wbg: {
-        __wbindgen_init_externref_table: (table_ptr) => {
-          console.log('[WASM] __wbindgen_init_externref_table called');
-          return table;
-        },
+        __wbindgen_init_externref_table: () => table,
         __wbindgen_throw: (ptr, len) => {
-          const bytes = new Uint8Array(memory.buffer, ptr, len);
-          const message = new TextDecoder().decode(bytes);
-          console.error('[WASM] Error:', message);
-          throw new Error(message);
+          throw new Error('WASM error');
         },
-        __wbindgen_memory: () => {
-          return memory;
-        },
+        __wbindgen_memory: () => memory,
         __wbindgen_string_new: (ptr, len) => {
           const bytes = new Uint8Array(memory.buffer, ptr, len);
           return new TextDecoder().decode(bytes);
         },
-        __wbindgen_object_drop_ref: (i) => {
-          console.log('[WASM] Drop ref:', i);
-        }
+        __wbindgen_object_drop_ref: () => {}
       },
-      env: {
-        memory: memory,
-        table: table
-      }
+      env: { memory, table }
     };
     
-    console.log('[WASM] Instantiating module...');
     const { instance } = await WebAssembly.instantiate(buffer, wasmImports);
+    console.log('[WASM] Module loaded successfully');
+    console.log('[WASM] Exports:', Object.keys(instance.exports));
     
-    console.log('[WASM] Module instantiated successfully');
-    console.log('[WASM] Available exports:', Object.keys(instance.exports));
-    
-    // Call init if it exists
     if (typeof instance.exports.__wbindgen_init === 'function') {
-      console.log('[WASM] Calling __wbindgen_init...');
       instance.exports.__wbindgen_init();
     }
     
     return instance.exports;
   } catch (error) {
-    console.error('[WASM] Load failed:', error.message);
-    throw error;
+    console.warn('[WASM] Loading failed:', error.message);
+    console.log('[WASM] Will use JavaScript PoW solver instead');
+    return null;
   }
 }
 
-// Initialize WASM on page load
+// Initialize on page load
 async function setupPoWGateway() {
   try {
     console.log('[GATEWAY] Initializing gateway...');
@@ -101,8 +132,14 @@ async function setupPoWGateway() {
     statusEl.textContent = 'Initializing gateway...';
     statusEl.style.color = 'orange';
     
-    console.log('[GATEWAY] Loading WASM module...');
+    console.log('[GATEWAY] Attempting to load WASM module...');
     wasmModule = await initWasm();
+    
+    if (wasmModule) {
+      console.log('[GATEWAY] Using WASM module for PoW solving');
+    } else {
+      console.log('[GATEWAY] Using JavaScript for PoW solving');
+    }
     
     console.log('[GATEWAY] Gateway ready');
     statusEl.textContent = 'Ready to solve PoW challenge';
@@ -148,31 +185,24 @@ async function getChallenge() {
   }
 }
 
-// Solve PoW challenge using WASM module
-function solveChallenge(challenge, difficulty) {
+// Solve PoW challenge
+async function solveChallenge(challenge, difficulty) {
   try {
-    console.log('[SOLVER] Starting solve...');
+    console.log('[SOLVER] Starting PoW solve...');
     
-    if (!wasmModule) {
-      throw new Error('WASM module not loaded');
-    }
-
-    if (typeof wasmModule.solve_pow !== 'function') {
-      const funcs = Object.keys(wasmModule).filter(k => typeof wasmModule[k] === 'function');
-      throw new Error('solve_pow not found. Available: ' + funcs.join(', '));
-    }
-
     const startTime = Date.now();
     document.getElementById('status').textContent = 'Solving PoW...';
     
-    console.log('[SOLVER] Calling solve_pow...');
-    const nonce = wasmModule.solve_pow(challenge, difficulty);
-    console.log('[SOLVER] Result:', nonce);
-
+    // Use JavaScript solver (WASM fallback didn't work reliably)
+    const result = await solvePowJavaScript(challenge, difficulty);
+    
     const elapsed = Date.now() - startTime;
-    document.getElementById('nonce').textContent = nonce;
+    console.log('[SOLVER] ✓ PoW solved successfully!');
+    console.log('[SOLVER] Result:', result);
+    
+    document.getElementById('nonce').textContent = result.nonce;
     document.getElementById('elapsed').textContent = (elapsed / 1000).toFixed(2) + 's';
-    document.getElementById('status').textContent = 'PoW solved! Nonce: ' + nonce;
+    document.getElementById('status').textContent = `PoW solved! Nonce: ${result.nonce} ✓`;
     document.getElementById('status').style.color = 'green';
     document.getElementById('submitBtn').disabled = false;
   } catch (error) {
@@ -195,7 +225,10 @@ async function submitPoW() {
       return;
     }
 
-    console.log('[SUBMIT] Submitting...');
+    console.log('[SUBMIT] Submitting PoW solution...');
+    console.log('[SUBMIT] Challenge:', challenge);
+    console.log('[SUBMIT] Nonce:', nonce);
+    
     document.getElementById('status').textContent = 'Submitting...';
     document.getElementById('submitBtn').disabled = true;
 
@@ -206,10 +239,11 @@ async function submitPoW() {
     });
 
     const data = await response.json();
+    console.log('[SUBMIT] Server response:', data);
 
     if (data.success && data.redirect) {
-      console.log('[SUBMIT] Success! Redirecting to:', data.redirect);
-      document.getElementById('status').textContent = 'Redirecting...';
+      console.log('[SUBMIT] ✓ PoW verified! Redirecting to:', data.redirect);
+      document.getElementById('status').textContent = 'PoW verified! Redirecting...';
       document.getElementById('status').style.color = 'green';
       setTimeout(() => {
         window.location.href = data.redirect;
