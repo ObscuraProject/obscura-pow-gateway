@@ -14,7 +14,6 @@
 //  branding is strictly prohibited.
 // ============================================================
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -98,170 +97,246 @@
             color: #00ff00;
         }
 
+        input[readonly] {
+            background: rgba(0, 50, 0, 0.5);
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            padding: 12px;
+            font-size: 12px;
+            min-height: 40px;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        input[readonly]::placeholder {
+            color: #00aa00;
+        }
+
         .info-box {
             background: rgba(0, 50, 0, 0.3);
             border-left: 3px solid #00ff00;
             padding: 15px;
             margin-bottom: 20px;
+            border-radius: 4px;
             font-size: 12px;
-            line-height: 1.6;
+            line-height: 1.5;
         }
 
-        .status {
-            background: rgba(0, 30, 0, 0.8);
-            border: 1px solid #00cc00;
-            border-radius: 4px;
+        .noscript-warning {
+            background: rgba(100, 80, 0, 0.3);
+            border-left: 3px solid #ffcc00;
             padding: 15px;
             margin-bottom: 20px;
-            min-height: 30px;
-            display: flex;
-            align-items: center;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        .status.success {
-            color: #00ff00;
-            border-color: #00ff00;
-            animation: none;
-        }
-
-        .status.error {
-            color: #ff0000;
-            border-color: #ff0000;
-            animation: none;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #ffcc00;
+            line-height: 1.5;
         }
 
         .buttons {
             display: flex;
             gap: 10px;
-            justify-content: center;
+            margin-bottom: 20px;
         }
 
         button {
+            flex: 1;
+            padding: 12px 20px;
             background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
             color: #00ff00;
-            border: 2px solid #00ff00;
-            padding: 12px 30px;
-            font-size: 12px;
-            font-family: 'Courier New', monospace;
             cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 1px;
             border-radius: 4px;
             transition: all 0.3s ease;
-            flex: 1;
         }
 
-        button:hover:not(:disabled) {
+        button:hover {
             background: rgba(0, 255, 0, 0.2);
             box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            text-shadow: 0 0 5px #00ff00;
         }
 
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            color: #666;
+            border-color: #666;
         }
 
-        button:active:not(:disabled) {
-            transform: scale(0.98);
+        button:active {
+            background: rgba(0, 255, 0, 0.3);
         }
 
-        .stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 20px;
-            font-size: 11px;
-        }
-
-        .stat-item {
-            background: rgba(0, 50, 0, 0.3);
+        .status {
+            background: rgba(0, 50, 0, 0.5);
             border: 1px solid #00ff00;
-            padding: 10px;
             border-radius: 4px;
+            padding: 15px;
             text-align: center;
-        }
-
-        .stat-label {
-            color: #00cc00;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-            font-size: 10px;
-        }
-
-        .stat-value {
+            font-size: 12px;
             color: #00ff00;
-            font-weight: bold;
+            min-height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
         }
 
-        .disclaimer {
-            margin-top: 30px;
+        .status.ready {
+            background: rgba(0, 100, 0, 0.3);
+            border-color: #00ff00;
+            color: #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+
+        .status.loading {
+            background: rgba(50, 50, 0, 0.3);
+            border-color: #ffcc00;
+            color: #ffcc00;
+        }
+
+        .status.error {
+            background: rgba(100, 0, 0, 0.3);
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+
+        .status.success {
+            background: rgba(0, 100, 0, 0.3);
+            border-color: #00ff00;
+            color: #00ff00;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 10px;
+            color: #00cc00;
+            margin-top: 20px;
             padding-top: 20px;
-            border-top: 1px solid #00ff00;
+            border-top: 1px dashed #00ff00;
+            letter-spacing: 1px;
+        }
+
+        .note {
+            background: rgba(0, 50, 0, 0.2);
+            border-left: 3px solid #00cc00;
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 4px;
             font-size: 11px;
             color: #00cc00;
-            line-height: 1.6;
+            line-height: 1.4;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .buttons {
+                flex-direction: column;
+            }
+
+            button {
+                padding: 10px 15px;
+                font-size: 11px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Header -->
         <div class="header">
             <h1>⚡ ObscuraGate PoW Gateway ⚡</h1>
             <p>Proof of Work Authentication System</p>
         </div>
 
-        <div class="content">
-            <div class="info-box">
-                <strong>How it works:</strong> Click "Get Challenge" to receive a Proof of Work puzzle. The WASM module will calculate the correct nonce, then submit it for verification and redirect you to one of our mirror links.
+        <!-- Warning for JavaScript disabled users -->
+        <noscript>
+            <div class="noscript-warning">
+                <strong>> JavaScript Disabled:</strong> This gateway works perfectly without JavaScript! Follow these steps: 1) Click "Get Challenge" 2) A new page will load with your challenge and nonce 3) Click "Submit" to verify.
             </div>
+        </noscript>
 
-            <div class="status" id="status">
-                Initializing gateway...
-            </div>
+        <!-- Info Box -->
+        <div class="info-box">
+            <strong>> How it works:</strong> Click "Get Challenge" to receive a Proof of Work puzzle. The server will calculate the correct nonce, then click "Submit" for verification and redirection.
+        </div>
 
+        <!-- Main Form -->
+        <form method="POST" action="/challenge" class="content" id="powForm">
+            <!-- Challenge Field -->
             <div class="field">
-                <label class="label">Challenge ID</label>
-                <div class="value" id="challenge">Waiting for challenge...</div>
+                <span class="label">Challenge ID</span>
+                <input type="text" name="challenge" id="challenge" placeholder="Click Get Challenge..." readonly>
             </div>
 
+            <!-- Difficulty Field -->
             <div class="field">
-                <label class="label">Difficulty (leading zeros required)</label>
-                <div class="value" id="difficulty">-</div>
+                <span class="label">Difficulty (leading zeros required)</span>
+                <input type="text" id="difficulty" placeholder="-" readonly>
             </div>
 
+            <!-- Calculated Nonce Field -->
             <div class="field">
-                <label class="label">Calculated Nonce</label>
-                <div class="value" id="nonce">Pending...</div>
+                <span class="label">Calculated Nonce</span>
+                <input type="text" name="nonce" id="nonce" placeholder="Pending..." readonly>
             </div>
 
-            <div class="stats">
-                <div class="stat-item">
-                    <div class="stat-label">Computation Time</div>
-                    <div class="stat-value" id="elapsed">-</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Status</div>
-                    <div class="stat-value" id="stat-status">Ready</div>
-                </div>
+            <!-- Computation Time Field -->
+            <div class="field">
+                <span class="label">Computation Time</span>
+                <input type="text" id="elapsed" placeholder="-" readonly>
             </div>
 
-            <div class="buttons" style="margin-top: 30px;">
-                <button id="getChallenge" onclick="getChallenge()" disabled>Get Challenge</button>
-                <button id="submitBtn" onclick="submitPoW()" disabled>Submit PoW</button>
+            <!-- Buttons -->
+            <div class="buttons">
+                <!-- Get Challenge button submits to /challenge endpoint -->
+                <button type="submit" id="getChallenge">Get Challenge</button>
+                <!-- Submit button is for /api/submit (hidden by default) -->
+                <button type="button" id="submitBtn" disabled style="display:none;" onclick="document.getElementById('submitForm').submit();">Submit</button>
             </div>
 
-            <div class="disclaimer">
-                <strong>Note:</strong> This gateway uses minimal JavaScript to load a WebAssembly module that performs the Proof of Work calculation. The computation may take several seconds depending on your system's performance. Your browser will calculate the nonce locally without sending it to our servers until verified.
+            <!-- Status -->
+            <div class="status ready" id="status">
+                > Ready to get challenge
             </div>
+
+            <!-- Note -->
+            <div class="note">
+                <strong>> Note:</strong> This gateway uses server-side Proof of Work computation, which works with JavaScript enabled OR disabled. Your PoW is calculated securely on the server.
+            </div>
+        </form>
+
+        <!-- Hidden form for submit action (JavaScript will use fetch instead) -->
+        <form method="POST" action="/api/submit" id="submitForm" style="display:none;">
+            <input type="hidden" name="challenge" id="submitChallenge">
+            <input type="hidden" name="nonce" id="submitNonce">
+        </form>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Copyright © 2025-2026 The Obscura Project | Licensed by Toric Security Services</p>
         </div>
     </div>
 
-    <script src="/pow-solver.js"></script>
+    <!-- JavaScript Handler for JS-enabled users (optional enhancement) -->
+    <script src="pow-solver.js"></script>
 </body>
 </html>
