@@ -109,5 +109,3 @@ Access at: http://localhost:3000
 Proprietary - Modify as needed for your deployment.
 
 ---
-
-**Start with QUICKSTART.md for a 5-minute setup!**
