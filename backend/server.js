@@ -14,7 +14,6 @@
 //  branding is strictly prohibited.
 // ============================================================
 
-
 const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
@@ -30,12 +29,20 @@ const mirrors = [
   'https://mirror4.example.com/'
 ];
 
-// Serve static files from 'public' folder
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files from 'public' folder with WASM MIME type support
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.wasm')) {
+      // Ensure correct MIME type for WASM files
+      res.setHeader('Content-Type', 'application/wasm');
+      res.setHeader('Content-Disposition', 'attachment; filename="' + path.basename(filePath) + '"');
+    }
+  },
+}));
+
 app.use(express.json());
 
 // In-memory store for issued challenges
-// In production, use a database with TTL/expiry
 const challenges = new Map();
 const CHALLENGE_EXPIRY = 5 * 60 * 1000; // 5 minutes
 
@@ -47,7 +54,7 @@ setInterval(() => {
       challenges.delete(key);
     }
   }
-}, 60 * 1000); // Check every minute
+}, 60 * 1000);
 
 // Helper to generate random challenge string
 function generateChallenge() {
@@ -57,9 +64,8 @@ function generateChallenge() {
 // API to get a new PoW challenge
 app.get('/api/challenge', (req, res) => {
   const challenge = generateChallenge();
-  const difficulty = 4; // number of leading zeros required in hash (SHA-256)
+  const difficulty = 4;
 
-  // Store challenge with difficulty and timestamp
   challenges.set(challenge, {
     difficulty,
     timestamp: Date.now()
@@ -86,30 +92,24 @@ app.post('/api/submit', (req, res) => {
   }
 
   const { difficulty } = challengeData;
-
-  // Compute hash of (challenge + nonce)
   const hashInput = challenge + nonce.toString();
   const hash = crypto.createHash('sha256').update(hashInput).digest('hex');
-
-  // Check hash meets difficulty (leading zeros)
   const target = '0'.repeat(difficulty);
-  if (hash.startsWith(target)) {
-    // PoW valid, remove challenge to prevent reuse
-    challenges.delete(challenge);
 
-    // Select random mirror from configured list
+  if (hash.startsWith(target)) {
+    challenges.delete(challenge);
     const redirectUrl = mirrors[Math.floor(Math.random() * mirrors.length)];
 
     return res.json({
       success: true,
       redirect: redirectUrl,
-      hash: hash,
-      nonce: nonce
+      hash,
+      nonce
     });
   } else {
     return res.status(400).json({
       error: 'Invalid PoW solution',
-      hash: hash,
+      hash,
       required: `hash must start with ${target}`
     });
   }
@@ -126,5 +126,6 @@ app.listen(port, () => {
   console.log(`║  ObscuraGate PoW Gateway Backend      ║`);
   console.log(`║  Listening on http://localhost:${port}  ║`);
   console.log(`║  Mirrors configured: ${mirrors.length}           ║`);
+  console.log(`║  WASM Module: /wasm/obscuragate_pow_bg.wasm ║`);
   console.log(`╚════════════════════════════════════════╝\n`);
 });
