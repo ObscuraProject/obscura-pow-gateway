@@ -28,11 +28,11 @@ wasm-pack --version     # Installed via cargo
 ### Installation (5 minutes)
 
 ```bash
-# 1. Create project structure
-mkdir -p obscuragate-pow-gateway/{backend/public/wasm,rust-pow/src}
-cd obscuragate-pow-gateway
+# 1. Clone this repository
+git clone https://github.com/ObscuraProject/obscura-pow-gateway.git
 
-# 2. Copy all source files (from this ZIP)
+# 2. Enter the project's root directory
+cd obscura-pow-gateway
 
 # 3. Build WASM
 cd rust-pow
